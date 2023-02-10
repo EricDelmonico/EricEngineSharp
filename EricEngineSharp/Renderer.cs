@@ -192,7 +192,7 @@ namespace EricEngineSharp
             cubeTransform.scale = new Vector3D<float> { X = 1, Y = 1, Z= 1 };
             cubeTransform.pitchYawRoll = Vector3D<float>.Zero;
 
-            Gl.CullFace(CullFaceMode.front);
+            Gl.CullFace(CullFaceMode.Front);
         }
 
         private uint CreateShader(string shaderName, string shaderCode, ShaderType shaderType = ShaderType.FragmentShader)
