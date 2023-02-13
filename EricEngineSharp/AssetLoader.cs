@@ -2,6 +2,9 @@
 using Assimp.Configs;
 using System.Reflection;
 using Silk.NET.Maths;
+using System.Text.Json.Nodes;
+using System.Text.Json;
+using System.Diagnostics;
 
 namespace EricEngineSharp
 {
@@ -17,11 +20,13 @@ namespace EricEngineSharp
         private Dictionary<string, MeshGroup> loadedMeshes = new Dictionary<string, MeshGroup>();
 
         private readonly string basePath;
-        private const string assetsFolderName = "Assets";
+        private const string AssetsFolderName = "Assets";
+
+        private const string EricMeshExtension = ".ericmesh";
 
         /// <summary>
         /// Initializes <see cref="importer"/> to a new <see cref="AssimpContext"/> and sets it up.
-        /// Also sets <see cref="basePath"/> to the executing assembly location + <see cref="assetsFolderName"/>.
+        /// Also sets <see cref="basePath"/> to the executing assembly location + <see cref="AssetsFolderName"/>.
         /// </summary>
         /// <remarks>Note: this is private to enforce singleton. Only one <see cref="instance"/> should ever be created.</remarks>
         private AssetLoader()
@@ -29,7 +34,7 @@ namespace EricEngineSharp
             importer = new AssimpContext();
             importer.SetConfig(new NormalSmoothingAngleConfig(66.0f));
 
-            basePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), assetsFolderName);
+            basePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), AssetsFolderName);
         }
 
         /// <summary>
@@ -41,21 +46,87 @@ namespace EricEngineSharp
             if (loadedMeshes.ContainsKey(filename)) return loadedMeshes[filename];
 
             filename = Path.Combine(basePath, "Models", filename);
+
+            // If we have an ericmesh file created already, load from that,
+            // otherwise use Assimp to load the asset in from a file
+            MeshGroup ericMesh = LoadEricMeshGroup(filename);
+            if (ericMesh == null)
+            {
+                ericMesh = LoadMeshGroupUsingAssimp(filename);
+            }
+
+            // Don't cache a null mesh
+            if (ericMesh == null) return null;
+
+            loadedMeshes[filename] = ericMesh;
+            return loadedMeshes[filename];
+        }
+
+        /// <summary>
+        /// Loads a <see cref="MeshGroup"/> from Assimp compatible file formats (.obj, etc.)
+        /// </summary>
+        /// <param name="filename">The full name of the file to load in</param>
+        /// <returns>The model file converted to a <see cref="MeshGroup"/></returns>
+        private MeshGroup LoadMeshGroupUsingAssimp(string filename)
+        {
             Scene scene = importer.ImportFile(filename, PostProcessPreset.TargetRealTimeMaximumQuality);
 
             // Load in each mesh thats in the scene
             var meshes = new Mesh[scene.MeshCount];
-            for(int i = 0; i < scene.MeshCount; i++)
+            for (int i = 0; i < scene.MeshCount; i++)
             {
                 meshes[i] = scene.Meshes[i].GetEricEngineMesh();
             }
 
             // Cache the mesh
-            loadedMeshes[filename] = new MeshGroup(meshes, filename);
-            return loadedMeshes[filename];
+            return new MeshGroup(meshes, filename);
         }
 
-        
+        /// <summary>
+        /// Saves a <see cref="MeshGroup"/> to a file called <paramref name="filename"/>.ericmesh.
+        /// </summary>
+        /// <param name="filename">The name of the file the mesh group will be saved.</param>
+        private void SaveEricMeshGroup(string filename)
+        {
+            var options = new JsonSerializerOptions()
+            {
+                IncludeFields = true,
+                WriteIndented = true,
+            };
+            string file = JsonSerializer.Serialize(loadedMeshes[filename], options);
+            using (StreamWriter sw = new StreamWriter(filename + EricMeshExtension))
+            {
+                sw.WriteLine(file);
+            }
+        }
+
+        /// <summary>
+        /// Loads in a <see cref="MeshGroup"/> from a file
+        /// </summary>
+        /// <param name="filename">The full name of the file to load a <see cref="MeshGroup"/> from</param>
+        /// <returns><see cref="MeshGroup"/> loaded in from <paramref name="filename"/></returns>
+        private MeshGroup LoadEricMeshGroup(string filename)
+        {
+            filename = filename + EricMeshExtension;
+            try
+            {
+                using (StreamReader sr = new StreamReader(filename))
+                {
+                    string meshGroup = sr.ReadToEnd();
+                    var options = new JsonSerializerOptions()
+                    {
+                        IncludeFields = true,
+                    };
+                    MeshGroup mg = JsonSerializer.Deserialize<MeshGroup>(meshGroup, options);
+                    return mg;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+                return null;
+            }
+        }
     }
 
     internal static class AssimpVectorExtensions

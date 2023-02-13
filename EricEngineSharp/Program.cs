@@ -16,7 +16,6 @@ namespace EricEngineSharp
             options.Size = new Vector2D<int>(windowWidth, windowHeight);
             options.Title = "Eric Engine Sharp";
 
-            // Inject dependencies
             IWindow window = Window.Create(options);
             Renderer renderer = new Renderer(window);
             App app = new App(window, renderer);

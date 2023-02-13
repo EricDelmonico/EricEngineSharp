@@ -1,14 +1,7 @@
 ﻿using NLog;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
-using Silk.NET.SDL;
 using Silk.NET.Windowing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EricEngineSharp
 {
@@ -78,7 +71,6 @@ namespace EricEngineSharp
             {
                 createdBuffersForMesh |= CreateVertexAndElementBufferObjects(mg);
             }
-            if (createdBuffersForMesh) return;
 
             // Clear the color channel and the depth channel
             Gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
@@ -108,7 +100,13 @@ namespace EricEngineSharp
             }
 
             // Draw the geometry
-            Gl.DrawElements(PrimitiveType.Triangles, (uint)testCube.meshes[0].indices.Length, DrawElementsType.UnsignedInt, null);
+            foreach (var mg in meshGroups)
+            {
+                for (int i = 0; i < mg.meshes.Length; i++)
+                {
+                    Gl.DrawElements(PrimitiveType.Triangles, (uint)mg.meshes[i].indices.Length, DrawElementsType.UnsignedInt, null);
+                }
+            }
         }
 
         private unsafe bool CreateVertexAndElementBufferObjects(MeshGroup meshGroup)
@@ -178,6 +176,7 @@ namespace EricEngineSharp
             testCube = AssetLoader.Instance.LoadOrGetMeshList("cube.obj");
 
             meshGroups.Add(testCube);
+            meshGroups.Add(AssetLoader.Instance.LoadOrGetMeshList("sphere.obj"));
 
             uint fragment = CreateShader("FragmentShader", FragmentShaderSource);
             uint vertex = CreateShader("VertexShader", VertexShaderSource, ShaderType.VertexShader);
@@ -191,6 +190,8 @@ namespace EricEngineSharp
             cubeTransform.position = new Vector3D<float> { X= 0, Y = 0, Z= 0 };
             cubeTransform.scale = new Vector3D<float> { X = 1, Y = 1, Z= 1 };
             cubeTransform.pitchYawRoll = Vector3D<float>.Zero;
+
+            Gl.Enable(GLEnum.DepthTest);
 
             Gl.CullFace(CullFaceMode.Front);
         }
