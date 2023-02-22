@@ -24,6 +24,8 @@ namespace EricEngineSharp
 
         private const string EricMeshExtension = ".ericmesh";
 
+        private static int currentMeshID = 0;
+
         /// <summary>
         /// Initializes <see cref="importer"/> to a new <see cref="AssimpContext"/> and sets it up.
         /// Also sets <see cref="basePath"/> to the executing assembly location + <see cref="AssetsFolderName"/>.
@@ -49,7 +51,7 @@ namespace EricEngineSharp
 
             // If we have an ericmesh file created already, load from that,
             // otherwise use Assimp to load the asset in from a file
-            MeshGroup ericMesh = LoadEricMeshGroup(filename);
+            MeshGroup? ericMesh = LoadEricMeshGroup(filename);
             if (ericMesh == null)
             {
                 ericMesh = LoadMeshGroupUsingAssimp(filename);
@@ -105,7 +107,7 @@ namespace EricEngineSharp
         /// </summary>
         /// <param name="filename">The full name of the file to load a <see cref="MeshGroup"/> from</param>
         /// <returns><see cref="MeshGroup"/> loaded in from <paramref name="filename"/></returns>
-        private MeshGroup LoadEricMeshGroup(string filename)
+        private MeshGroup? LoadEricMeshGroup(string filename)
         {
             filename = filename + EricMeshExtension;
             try

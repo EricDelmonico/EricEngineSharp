@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using EricEngineSharp.Components;
+using NLog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -12,10 +13,23 @@ namespace EricEngineSharp
         IWindow window;
         IRenderer renderer;
 
-        internal App(IWindow window, IRenderer renderer)
+        internal App()
         {
-            this.window = window;
-            this.renderer= renderer;
+            int windowWidth = 1920, windowHeight = 1080;
+
+            var options = WindowOptions.Default;
+            options.Size = new Vector2D<int>(windowWidth, windowHeight);
+            options.Title = "Eric Engine Sharp";
+
+            window = Window.Create(options);
+            renderer = new Renderer(window);
+
+            var ecm = EntityComponentManager.Instance;
+            for (int i = 0; i < 10; i++)
+            {
+                Entity e = ecm.AddEntity();
+                ecm.AddComponent(e, new RenderComponent(AssetLoader.Instance.LoadOrGetMeshList("cube.obj")));
+            }
         }
 
         public void Run()
@@ -24,7 +38,7 @@ namespace EricEngineSharp
             window.Render += OnRender;
             window.Update += OnUpdate;
             window.Closing += OnClosing;
-
+            
             window.Run();
         }
 

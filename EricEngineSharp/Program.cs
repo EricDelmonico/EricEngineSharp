@@ -10,15 +10,7 @@ namespace EricEngineSharp
 
         static void Main(string[] args)
         {
-            int windowWidth = 1280, windowHeight = 720;
-
-            var options = WindowOptions.Default;
-            options.Size = new Vector2D<int>(windowWidth, windowHeight);
-            options.Title = "Eric Engine Sharp";
-
-            IWindow window = Window.Create(options);
-            Renderer renderer = new Renderer(window);
-            App app = new App(window, renderer);
+            App app = new App();
             app.Run();
         }
     }

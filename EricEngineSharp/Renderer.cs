@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using EricEngineSharp.Components;
+using NLog;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -23,10 +24,6 @@ namespace EricEngineSharp
 
         private GL Gl;
         private IWindow window;
-
-        private MeshGroup testCube;
-        private List<MeshGroup> meshGroups = new List<MeshGroup>();
-        private Transform cubeTransform = new Transform();
 
         //Vertex shaders are run on each vertex.
         private readonly string VertexShaderSource = @"
@@ -64,47 +61,52 @@ namespace EricEngineSharp
         }
         ";
 
-        public unsafe void Render(double obj)
+        public unsafe void Render(double dt)
         {
+            var ecm = EntityComponentManager.Instance;
+            var renderables = ecm.GetComponentArray<RenderComponent>();
+
             bool createdBuffersForMesh = false;
-            foreach (var mg in meshGroups)
+            foreach (var renderable in renderables)
             {
+                if (renderable == null) break;
+                if (!renderable.IsValid) break;
+
+                var mg = renderable.meshGroup;
                 createdBuffersForMesh |= CreateVertexAndElementBufferObjects(mg);
             }
 
-            // Clear the color channel and the depth channel
             Gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
 
-            // Bind geometry and shader
             Gl.BindVertexArray(vao);
-            
             Gl.UseProgram(shaderProgram);
 
-            cubeTransform.pitchYawRoll.Y += (float)((MathF.PI / 2) * obj);
-            cubeTransform.pitchYawRoll.Z += (float)((MathF.PI / 2) * obj);
-            int loc = Gl.GetUniformLocation(shaderProgram, "model");
-            var modelMat = cubeTransform.Matrix;
-            Gl.UniformMatrix4(loc, 1, false, (float*)&modelMat);
-
-            var viewMat = Matrix4X4<float>.Identity * Matrix4X4.CreateTranslation(0.0f, 0, -2);
-            var perspectiveMat = Matrix4X4.CreatePerspectiveFieldOfView(MathF.PI / 2, 16.0f / 9.0f, 0.1f, 100.0f);
-            loc = Gl.GetUniformLocation(shaderProgram, "view");
-            Gl.UniformMatrix4(loc, 1, false, (float*)&viewMat);
-            loc = Gl.GetUniformLocation(shaderProgram, "perspective");
-            Gl.UniformMatrix4(loc, 1, false, (float*)&perspectiveMat);
-
-            foreach (var mg in meshGroups)
+            int modelULoc = Gl.GetUniformLocation(shaderProgram, "model");
+            int viewULoc = Gl.GetUniformLocation(shaderProgram, "view");
+            int perspectiveULoc = Gl.GetUniformLocation(shaderProgram, "perspective");
+            for (int i = 0; i < renderables.Length && renderables[i] != null && renderables[i].IsValid; i++)
             {
-                Gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbos[mg.name]);
-                Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ebos[mg.name]);
-            }
+                var renderable = renderables[i];
+                renderable.pitchYawRoll.Y += (float)((MathF.PI / 2) * dt * i);
+                renderable.pitchYawRoll.Z += (float)((MathF.PI / 2) * dt * i);
+                renderable.position = new Vector3D<float> { X = i - 5, Y = 0, Z = -5 };
+                var modelMat = renderable.Matrix;
+                Gl.UniformMatrix4(modelULoc, 1, false, (float*)&modelMat);
 
-            // Draw the geometry
-            foreach (var mg in meshGroups)
-            {
-                for (int i = 0; i < mg.meshes.Length; i++)
+                var viewMat = Matrix4X4<float>.Identity * Matrix4X4.CreateTranslation(0.0f, 0, -2);
+                var perspectiveMat = Matrix4X4.CreatePerspectiveFieldOfView(MathF.PI / 2, 16.0f / 9.0f, 0.1f, 100.0f);
+                Gl.UniformMatrix4(viewULoc, 1, false, (float*)&viewMat);
+                Gl.UniformMatrix4(perspectiveULoc, 1, false, (float*)&perspectiveMat);
+
+                // Bind the meshgroup's vbo and ebo
+                Gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbos[renderable.meshGroup.name]);
+                Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ebos[renderable.meshGroup.name]);
+
+                // Draw each mesh in the meshgroup
+                var mg = renderable.meshGroup;
+                for (int j = 0; j < mg.meshes.Length; j++)
                 {
-                    Gl.DrawElements(PrimitiveType.Triangles, (uint)mg.meshes[i].indices.Length, DrawElementsType.UnsignedInt, null);
+                    Gl.DrawElements(PrimitiveType.Triangles, (uint)mg.meshes[j].indices.Length, DrawElementsType.UnsignedInt, null);
                 }
             }
         }
@@ -118,7 +120,7 @@ namespace EricEngineSharp
             Gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
             fixed (void* v = &meshGroup.meshes[0].vertices[0])
             {
-                Gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(meshGroup.meshes[0].vertices.Length * Vertex.Stride), v, BufferUsageARB.DynamicDraw);
+                Gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(meshGroup.meshes[0].vertices.Length * Vertex.Stride), v, BufferUsageARB.StaticDraw);
             }
 
             // Initializing buffer that holds the index data
@@ -126,7 +128,7 @@ namespace EricEngineSharp
             Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ebo);
             fixed (void* i = &meshGroup.meshes[0].indices[0])
             {
-                Gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(meshGroup.meshes[0].indices.Length * sizeof(uint)), i, BufferUsageARB.DynamicDraw);
+                Gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(meshGroup.meshes[0].indices.Length * sizeof(uint)), i, BufferUsageARB.StaticDraw);
             }
 
             // Add our created objects to the corresponding arrays
@@ -173,11 +175,6 @@ namespace EricEngineSharp
             vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
-            testCube = AssetLoader.Instance.LoadOrGetMeshList("cube.obj");
-
-            meshGroups.Add(testCube);
-            meshGroups.Add(AssetLoader.Instance.LoadOrGetMeshList("sphere.obj"));
-
             uint fragment = CreateShader("FragmentShader", FragmentShaderSource);
             uint vertex = CreateShader("VertexShader", VertexShaderSource, ShaderType.VertexShader);
 
@@ -186,10 +183,6 @@ namespace EricEngineSharp
             // Delete individual shaders
             DetachAndDeleteShader(vertex);
             DetachAndDeleteShader(fragment);
-
-            cubeTransform.position = new Vector3D<float> { X= 0, Y = 0, Z= 0 };
-            cubeTransform.scale = new Vector3D<float> { X = 1, Y = 1, Z= 1 };
-            cubeTransform.pitchYawRoll = Vector3D<float>.Zero;
 
             Gl.Enable(GLEnum.DepthTest);
 
