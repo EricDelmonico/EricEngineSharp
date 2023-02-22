@@ -70,7 +70,6 @@ namespace EricEngineSharp
             foreach (var renderable in renderables)
             {
                 if (renderable == null) break;
-                if (!renderable.IsValid) break;
 
                 var mg = renderable.meshGroup;
                 createdBuffersForMesh |= CreateVertexAndElementBufferObjects(mg);
@@ -84,7 +83,7 @@ namespace EricEngineSharp
             int modelULoc = Gl.GetUniformLocation(shaderProgram, "model");
             int viewULoc = Gl.GetUniformLocation(shaderProgram, "view");
             int perspectiveULoc = Gl.GetUniformLocation(shaderProgram, "perspective");
-            for (int i = 0; i < renderables.Length && renderables[i] != null && renderables[i].IsValid; i++)
+            for (int i = 0; i < renderables.Length && renderables[i] != null; i++)
             {
                 var renderable = renderables[i];
                 renderable.pitchYawRoll.Y += (float)((MathF.PI / 2) * dt * i);
