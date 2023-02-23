@@ -10,8 +10,10 @@ namespace EricEngineSharp
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        IWindow window;
-        IRenderer renderer;
+        private IWindow window;
+        private IRenderer renderer;
+
+        private EntityComponentManager ecm;
 
         internal App()
         {
@@ -24,11 +26,11 @@ namespace EricEngineSharp
             window = Window.Create(options);
             renderer = new Renderer(window);
 
-            var ecm = EntityComponentManager.Instance;
-            for (int i = 0; i < 10; i++)
+            ecm = EntityComponentManager.Instance;
+            for (int i = 0; i < 4000; i++)
             {
                 Entity e = ecm.AddEntity();
-                ecm.AddComponent(e, new RenderComponent(AssetLoader.Instance.LoadOrGetMeshList("cube.obj")));
+                e.AddComponent(new RenderComponent(AssetLoader.Instance.LoadOrGetMeshList("cube.obj"), e));
             }
         }
 
@@ -38,7 +40,7 @@ namespace EricEngineSharp
             window.Render += OnRender;
             window.Update += OnUpdate;
             window.Closing += OnClosing;
-            
+
             window.Run();
         }
 
@@ -56,12 +58,12 @@ namespace EricEngineSharp
 
         private void OnRender(double obj)
         {
-            renderer.Render(obj);
+            renderer.Render(obj, ecm.Entities);
         }
 
         private void OnUpdate(double obj)
         {
-
+            ecm.Entities.ForEach(e => { e.Update(obj); });
         }
 
         private void OnClosing()

@@ -9,7 +9,7 @@ namespace EricEngineSharp
     internal interface IRenderer
     {
         void Init();
-        void Render(double obj);
+        void Render(double obj, List<Entity> entities);
         void OnClose();
     }
 
@@ -61,10 +61,9 @@ namespace EricEngineSharp
         }
         ";
 
-        public unsafe void Render(double dt)
+        public unsafe void Render(double dt, List<Entity> entities)
         {
-            var ecm = EntityComponentManager.Instance;
-            var renderables = ecm.GetComponentArray<RenderComponent>();
+            var renderables = entities.Select(e => e.GetComponent<RenderComponent>()).Where(rc => rc != null).ToArray();
 
             bool createdBuffersForMesh = false;
             foreach (var renderable in renderables)
