@@ -185,7 +185,7 @@ namespace EricEngineSharp
 
             Gl.Enable(GLEnum.DepthTest);
 
-            Gl.CullFace(CullFaceMode.Front);
+            Gl.CullFace(GLEnum.Front);
         }
 
         private uint CreateShader(string shaderName, string shaderCode, ShaderType shaderType = ShaderType.FragmentShader)

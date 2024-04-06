@@ -22,7 +22,7 @@ namespace EricEngineSharp
             options.Title = "Eric Engine Sharp";
 
             window = Window.Create(options);
-            renderer = new Renderer(window);
+            renderer = new D3DRenderer(window);
 
             var ecm = EntityComponentManager.Instance;
             for (int i = 0; i < 10; i++)
