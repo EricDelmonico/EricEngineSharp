@@ -94,6 +94,8 @@ namespace EricEngineSharp
             }
             return intersection.ToList();
         }
+
+        public ComponentType[] GetComponentArray<ComponentType>() where ComponentType : IComponent => componentArrays[typeof(ComponentType)] as ComponentType[];
     }
 
     internal static class ECSInternalHelperMethods

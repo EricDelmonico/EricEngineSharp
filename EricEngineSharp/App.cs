@@ -27,7 +27,7 @@ namespace EricEngineSharp
             var ecm = EntityComponentManager.Instance;
             for (int i = 0; i < 10; i++)
             {
-                Entity e = ecm.AddEntity();
+                var e = ecm.AddEntity();
                 ecm.AddComponent(e, new RenderComponent(AssetLoader.Instance.LoadOrGetMeshList("cube.obj")));
             }
         }

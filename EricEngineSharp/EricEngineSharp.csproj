@@ -11,11 +11,11 @@
   <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
     <PackageReference Include="NLog" Version="5.1.0" />
-    <PackageReference Include="Silk.NET.Core" Version="2.16.0" />
-    <PackageReference Include="Silk.NET.Input" Version="2.16.0" />
-    <PackageReference Include="Silk.NET.Maths" Version="2.16.0" />
-    <PackageReference Include="Silk.NET.OpenGL" Version="2.16.0" />
-    <PackageReference Include="Silk.NET.Windowing" Version="2.16.0" />
+    <PackageReference Include="Silk.NET.Core" Version="2.20.0" />
+    <PackageReference Include="Silk.NET.Input" Version="2.20.0" />
+    <PackageReference Include="Silk.NET.Maths" Version="2.20.0" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.20.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.20.0" />
   </ItemGroup>
 
   <ItemGroup>
