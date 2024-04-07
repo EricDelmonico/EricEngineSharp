@@ -1,7 +1,7 @@
 ﻿/* vertex attributes go here to input to the vertex shader */
 struct VsInput
 {
-    float3 position : POS;
+    float3 position : POSITION;
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float2 uv : TEXCOORD;
@@ -28,7 +28,7 @@ cbuffer ExternalData
 
 VsOutput vs_main(VsInput input)
 {
-    VsOutput output = { };
+    VsOutput output = (VsOutput)0;
     
     matrix mvp = mul(projection, mul(view, model));
     output.screenPosition = mul(mvp, float4(input.position, 1.0f));
@@ -40,7 +40,7 @@ VsOutput vs_main(VsInput input)
     
     output.uv = input.uv;
     
-    output.vertexColor = 0.5 * (input.position + float3(1, 1, 1));
+    output.vertexColor = float4(0.5 * (input.position + float3(1, 1, 1)), 1);
 
     return output;
 }

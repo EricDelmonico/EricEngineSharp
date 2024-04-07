@@ -1,5 +1,6 @@
 ﻿using EricEngineSharp.Components;
 using NLog;
+using Silk.NET.Direct3D11;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -15,9 +16,10 @@ namespace EricEngineSharp
 
         internal App()
         {
-            int windowWidth = 1920, windowHeight = 1080;
+            int windowWidth = 1280, windowHeight = 720;
 
             var options = WindowOptions.Default;
+            options.API = GraphicsAPI.None;
             options.Size = new Vector2D<int>(windowWidth, windowHeight);
             options.Title = "Eric Engine Sharp";
 

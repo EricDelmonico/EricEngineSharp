@@ -9,6 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Shaders\shaders.hlsl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Shaders\shaders.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
     <PackageReference Include="NLog" Version="5.1.0" />
     <PackageReference Include="Silk.NET.Core" Version="2.20.0" />
@@ -18,7 +28,6 @@
     <PackageReference Include="Silk.NET.OpenGL" Version="2.20.0" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.20.0" />
     <PackageReference Include="Silk.NET.Direct3D11" Version="2.20.0" />
-    <PackageReference Include="Silk.NET.Direct3DCompilers" Version="2.20.0" />
   </ItemGroup>
 
   <ItemGroup>

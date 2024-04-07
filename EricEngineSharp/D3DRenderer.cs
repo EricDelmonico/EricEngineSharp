@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.DotNet.PlatformAbstractions;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D.Compilers;
 using Silk.NET.Direct3D11;
@@ -41,7 +43,7 @@ namespace EricEngineSharp
             // Specify feature levels
             D3DFeatureLevel[] featureLevels = new[]
             {
-                D3DFeatureLevel.Level100,
+                D3DFeatureLevel.Level111,
             };
 
             // Create device
@@ -84,40 +86,122 @@ namespace EricEngineSharp
             SwapChainDesc1 scDesc = new SwapChainDesc1
             {
                 Format = Format.FormatB8G8R8A8Unorm,
-                Scaling = Scaling.None,
+                Scaling = Scaling.Stretch,
                 Stereo = false,
-                Width = 1920,
-                Height = 1080,
-                BufferCount = 1,
+                Width = 1280,
+                Height = 720,
+                BufferCount = 2,
                 BufferUsage = DXGI.UsageRenderTargetOutput,
+                AlphaMode = AlphaMode.Ignore,
+                SwapEffect = SwapEffect.FlipDiscard,
+                SampleDesc = new SampleDesc(1, 0)
+            };
+            SwapChainFullscreenDesc desc = new SwapChainFullscreenDesc
+            {
+                Windowed = true,
+                RefreshRate = new Rational(60, 1),
+                Scaling = ModeScaling.Stretched,
+                ScanlineOrdering = ModeScanlineOrder.Progressive
             };
             ThrowIfFailed(
-                dxgiFactory.CreateSwapChainForHwnd(
-                    ComPtr.Downcast<ID3D11Device, IUnknown>(device), 
-                    window.Handle, 
-                    scDesc, 
-                    null, 
-                    null, 
-                    ref swapChain.Handle));
+                dxgiFactory.CreateSwapChainForHwnd<ID3D11Device, IDXGISwapChain1>(
+                    device,
+                    window.Native!.DXHandle!.Value,
+                    &scDesc,
+                    &desc,
+                    ref Unsafe.NullRef<IDXGIOutput>(),
+                    ref swapChain));
 
             //
             // Compile shaders!!
             //
 
-            ComPtr<ID3D10Blob> vsBlob = new ComPtr<ID3D10Blob>();
-            ThrowIfFailed(
-                D3DCompiler.GetApi().CompileFromFile(
-                    "",
-                    null,
-                    ((ID3DInclude*)(UIntPtr)1),
-                    "vs_main",
-                    "vs_5_0",
-                    0,
-                    0,
-                    vsBlob.GetAddressOf(),
-                    null));
+            Debug.WriteLine("Shader file exists? "
+                + File.Exists(
+                    Path.Combine(ApplicationEnvironment.ApplicationBasePath,
+                    "Shaders",
+                    "shaders.hlsl")));
 
-            
+            string shaderSource;
+            using (StreamReader reader = new StreamReader(
+                Path.Combine(
+                    ApplicationEnvironment.ApplicationBasePath,
+                    "Shaders",
+                    "shaders.hlsl")))
+            {
+                shaderSource = reader.ReadToEnd();
+            }
+            var shaderBytes = Encoding.ASCII.GetBytes(shaderSource);
+
+            // Compile vertex shader
+            ComPtr<ID3D10Blob> blob = new ComPtr<ID3D10Blob>();
+            ComPtr<ID3D10Blob> shaderErrors = new ComPtr<ID3D10Blob>();
+            //ThrowIfFailed(
+            HResult hr = D3DCompiler.GetApi().Compile(
+                in shaderBytes[0],
+                (nuint)shaderBytes.Length,
+                nameof(shaderSource),
+                null,
+                ref Unsafe.NullRef<ID3DInclude>(),
+                "vs_main",
+                "vs_5_0",
+                0,
+                0,
+                ref blob,
+                ref shaderErrors);//);
+
+            // Check for compilation errors.
+            if (hr.IsFailure)
+            {
+                if (shaderErrors.Handle is not null)
+                {
+                    Console.WriteLine(SilkMarshal.PtrToString((nint)shaderErrors.GetBufferPointer()));
+                }
+
+                hr.Throw();
+            }
+
+            device.CreateVertexShader(
+                blob.GetBufferPointer(),
+                blob.GetBufferSize(),
+                ref Unsafe.NullRef<ID3D11ClassLinkage>(),
+                ref vs);
+
+            blob.Release();
+            shaderErrors.Release();
+
+            D3DCompiler.GetApi().Compile(
+                in shaderBytes[0],
+                (nuint)shaderBytes.Length,
+                nameof(shaderSource),
+                null,
+                ref Unsafe.NullRef<ID3DInclude>(),
+                "ps_main",
+                "ps_5_0",
+                0,
+                0,
+                ref blob,
+                ref shaderErrors);
+
+            // Check for compilation errors.
+            if (hr.IsFailure)
+            {
+                if (shaderErrors.Handle is not null)
+                {
+                    Console.WriteLine(SilkMarshal.PtrToString((nint)shaderErrors.GetBufferPointer()));
+                }
+
+                hr.Throw();
+            };
+
+            device.CreatePixelShader(
+                blob.GetBufferPointer(),
+                blob.GetBufferSize(),
+                ref Unsafe.NullRef<ID3D11ClassLinkage>(),
+                ref ps);
+
+            blob.Release();
+            shaderErrors.Release();
         }
 
         public void OnClose()
